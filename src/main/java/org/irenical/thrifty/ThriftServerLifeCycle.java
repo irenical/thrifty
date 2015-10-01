@@ -25,7 +25,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThriftServerLifeCycle.class);
 
-  private static final int DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 2000;
+  private static final int DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 10000;
 
   private static final int DEFAULT_SELECTOR_THREADS = 2;
 
