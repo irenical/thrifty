@@ -1,0 +1,11 @@
+*.iml
+.classpath
+.project
+.settings
+.DS_Store
+.idea
+*.tmp
+/build
+/target
+release.properties
+pom.xml.releaseBackup
