@@ -1,4 +1,4 @@
-package pt.impresa.application.thrift;
+package org.irenical.thrifty;
 
 import java.util.Map;
 import java.util.WeakHashMap;

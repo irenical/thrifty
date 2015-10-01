@@ -1,4 +1,4 @@
-package pt.impresa.application.thrift;
+package org.irenical.thrifty;
 
 public interface ThriftServerSettings {
     
