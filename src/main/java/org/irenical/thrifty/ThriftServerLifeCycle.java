@@ -109,15 +109,15 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
     serverThread.start();
   }
 
-  /**
-   * Blocks current thread until server is serving Returns instantly if the
-   * server was shutdown previously
-   * 
-   * @return - wether the thrift server started serving or not. Will return
-   *         false if a shutdown occured.
-   * @throws InterruptedException
-   *           - can happen while waiting
-   */
+//  /**
+//   * Blocks current thread until server is serving Returns instantly if the
+//   * server was shutdown previously
+//   * 
+//   * @return - wether the thrift server started serving or not. Will return
+//   *         false if a shutdown occured.
+//   * @throws InterruptedException
+//   *           - can happen while waiting
+//   */
   // public synchronized boolean waitUntilServing() throws InterruptedException
   // {
   // while (!shutdown && (thriftServer == null || !thriftServer.isServing())) {
