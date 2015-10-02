@@ -1,4 +1,4 @@
-# thrifty
+# Thrifty
 Thrift server boilerplate
 
 ## What is it?
@@ -6,7 +6,7 @@ Thrifty is a general-purpose implementation of a Thrift server, with boot and sh
 
 ## Where is it?
 At maven central
-```maven
+```xml
 <dependency>
   <groupId>org.irenical.thrifty</groupId>
   <artifactId>thrifty</artifactId>
@@ -15,9 +15,9 @@ At maven central
 ```
 
 ## How to use
-Thrifty deppends on https://github.com/irenical/jindy, so make sure you have a jindy binding on your classpath.
-In your code (possibly in your main class), you can instantiate a thrift server lifecycle with your thrift processor, a jindy Config instance (optional) and a property prefix (optional)
-Then press start!
+Thrifty deppends on https://github.com/irenical/jindy, so make sure you have a jindy binding on your classpath.  
+In your code (possibly in your main class), you can instantiate a thrift server lifecycle with your thrift processor, a jindy Config instance (optional) and a property prefix (optional)  
+Now press start!
 
 ```java
   ThriftServerLifeCycle thrift = new ThriftServerLifeCycle(new MyThriftStub.Processor<MyThriftStub.Iface>(myThriftImplementation), ConfigFactory.getConfig(), "myappname");
