@@ -31,6 +31,8 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   private static final int DEFAULT_WORKER_THREADS = 4;
 
+  private static final int DEFAULT_STARTUP_TIMEOUT_SECONDS = 180;
+
   private final Config config;
 
   private final TProcessor processor;
@@ -69,7 +71,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
   }
 
   @Override
-  public void start() {
+  public void start() throws InterruptedException {
     fireup(processor);
   }
 
@@ -84,33 +86,34 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
   }
 
   /**
-   * Non-blocking: creates and lauches a thread running thrift server
+   * Creates and launches a thread running a thrift server. Block the current
+   * thread until the server is accepting requests, or the thread is interrupted
    * 
    * @param processor
    *          - thrift processor
+   * @throws InterruptedException
+   *          - can happen while waiting the thrift server to boot
    */
-  private void fireup(TProcessor processor) {
-    serverThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          boot(processor);
-        } catch (Throwable e) {
-          LOG.error("An error occurred while running the server... exiting", e);
-          shutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
-        } finally {
-          synchronized (ThriftServerLifeCycle.this) {
-            ThriftServerLifeCycle.this.notifyAll();
-          }
+  private void fireup(TProcessor processor) throws InterruptedException {
+    serverThread = new Thread(() -> {
+      try {
+        boot(processor);
+      } catch (Throwable e) {
+        LOG.error("An error occurred while running the server... exiting", e);
+        shutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
+      } finally {
+        synchronized (ThriftServerLifeCycle.this) {
+          ThriftServerLifeCycle.this.notifyAll();
         }
       }
     }, "Thrift Server");
     serverThread.setDaemon(false);
     serverThread.start();
+    waitUntilServing();
   }
 
   /**
-   * Blocks current thread until server is serving Returns instantly if the
+   * Blocks current thread until server is serving. Returns instantly if the
    * server was shutdown previously
    * 
    * @return - wether the thrift server started serving or not. Will return
@@ -119,8 +122,9 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    *           - can happen while waiting
    */
   public synchronized boolean waitUntilServing() throws InterruptedException {
+    int startTimeout = config.getInt(STARTUP_TIMEOUT_SECONDS, DEFAULT_STARTUP_TIMEOUT_SECONDS);
     while (!shutdown && (thriftServer == null || !thriftServer.isServing())) {
-      wait(180); // FIXME magic number
+      wait(startTimeout);
     }
     return !shutdown;
   }
