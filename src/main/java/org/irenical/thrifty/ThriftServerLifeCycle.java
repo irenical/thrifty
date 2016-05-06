@@ -90,18 +90,15 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    *          - thrift processor
    */
   private void fireup(TProcessor processor) {
-    serverThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          boot(processor);
-        } catch (Throwable e) {
-          LOG.error("An error occurred while running the server... exiting", e);
-          shutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
-        } finally {
-          synchronized (ThriftServerLifeCycle.this) {
-            ThriftServerLifeCycle.this.notifyAll();
-          }
+    serverThread = new Thread(() -> {
+      try {
+        boot(processor);
+      } catch (Throwable e) {
+        LOG.error("An error occurred while running the server... exiting", e);
+        shutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
+      } finally {
+        synchronized (ThriftServerLifeCycle.this) {
+          ThriftServerLifeCycle.this.notifyAll();
         }
       }
     }, "Thrift Server");
