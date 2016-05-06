@@ -69,7 +69,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
   }
 
   @Override
-  public void start() {
+  public void start() throws InterruptedException {
     fireup(processor);
   }
 
@@ -84,12 +84,15 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
   }
 
   /**
-   * Non-blocking: creates and lauches a thread running thrift server
+   * Creates and launches a thread running a thrift server. Block the current
+   * thread until the server is accepting requests, or the thread is interrupted
    * 
    * @param processor
    *          - thrift processor
+   * @throws InterruptedException
+   *          - can happen while waiting the thrift server to boot
    */
-  private void fireup(TProcessor processor) {
+  private void fireup(TProcessor processor) throws InterruptedException {
     serverThread = new Thread(() -> {
       try {
         boot(processor);
@@ -104,10 +107,11 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
     }, "Thrift Server");
     serverThread.setDaemon(false);
     serverThread.start();
+    waitUntilServing();
   }
 
   /**
-   * Blocks current thread until server is serving Returns instantly if the
+   * Blocks current thread until server is serving. Returns instantly if the
    * server was shutdown previously
    * 
    * @return - wether the thrift server started serving or not. Will return
