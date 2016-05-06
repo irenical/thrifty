@@ -31,6 +31,8 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   private static final int DEFAULT_WORKER_THREADS = 4;
 
+  private static final int DEFAULT_STARTUP_TIMEOUT_SECONDS = 180;
+
   private final Config config;
 
   private final TProcessor processor;
@@ -120,8 +122,9 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    *           - can happen while waiting
    */
   public synchronized boolean waitUntilServing() throws InterruptedException {
+    int startTimeout = config.getInt(STARTUP_TIMEOUT_SECONDS, DEFAULT_STARTUP_TIMEOUT_SECONDS);
     while (!shutdown && (thriftServer == null || !thriftServer.isServing())) {
-      wait(180); // FIXME magic number
+      wait(startTimeout);
     }
     return !shutdown;
   }
