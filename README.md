@@ -1,3 +1,5 @@
+[![][maven img]][maven]
+
 # Thrifty
 Thrift server boilerplate
 
@@ -36,3 +38,6 @@ myappname.thrift.shutdownTimeoutMillis=10000
 ```
 
 Thrifty uses TNonblockingServerTransport and TThreadedSelectorServer
+
+[maven]:http://search.maven.org/#search|gav|1|g:"org.irenical.thrifty"%20AND%20a:"thrifty"
+[maven img]:https://maven-badges.herokuapp.com/maven-central/org.irenical.thrifty/thrifty/badge.svg
