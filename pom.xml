@@ -23,6 +23,30 @@
     <url>git@github.com:irenical/thrifty.git</url>
   </scm>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.7.6.201602180812</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.thrift</groupId>
@@ -39,7 +63,7 @@
       <artifactId>lifecycle</artifactId>
       <version>1.0.2</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.irenical.jindy</groupId>
       <artifactId>jindy-commons-impl</artifactId>
