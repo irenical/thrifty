@@ -1,5 +1,6 @@
 package org.irenical.thrifty;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -37,15 +38,13 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   private final TProcessor processor;
 
-  private final Map<ServerContext, Long> pendingSessions = new WeakHashMap<ServerContext, Long>();
+  private final Map<ServerContext, Long> pendingSessions = Collections.synchronizedMap(new WeakHashMap<ServerContext, Long>());
 
   private volatile boolean shutdown = false;
 
   private volatile Thread serverThread;
 
   private volatile UberThriftServer thriftServer;
-
-  private final String configPropertyPrefix;
 
   /**
    * A thrift server lifecycle start() will fire a new thread The following
@@ -61,13 +60,10 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    * @param config
    *          - the config object to read properties from,
    *          ConfigFactory.getConfig() will be used by default
-   * @param configPropertyPrefix
-   *          - an optional prefix for your properties
    */
-  public ThriftServerLifeCycle(TProcessor processor, Config config, String configPropertyPrefix) {
+  public ThriftServerLifeCycle(TProcessor processor, Config config) {
     this.processor = processor;
     this.config = config == null ? ConfigFactory.getConfig() : config;
-    this.configPropertyPrefix = configPropertyPrefix == null || configPropertyPrefix.trim().isEmpty() ? "" : (configPropertyPrefix.endsWith(".") ? configPropertyPrefix : (configPropertyPrefix + "."));
   }
 
   @Override
@@ -77,7 +73,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   @Override
   public void stop() {
-    doShutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
+    doShutdown(config.getInt(SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
   }
 
   @Override
@@ -92,7 +88,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    * @param processor
    *          - thrift processor
    * @throws InterruptedException
-   *          - can happen while waiting the thrift server to boot
+   *           - can happen while waiting the thrift server to boot
    */
   private void fireup(TProcessor processor) throws InterruptedException {
     serverThread = new Thread(() -> {
@@ -100,7 +96,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
         boot(processor);
       } catch (Throwable e) {
         LOG.error("An error occurred while running the server... exiting", e);
-        shutdown(config.getInt(configPropertyPrefix + SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
+        shutdown(config.getInt(SHUTDOWN_TIMEOUT_MILLIS, DEFAULT_SHUTDOWN_TIMEOUT_MILLIS));
       } finally {
         synchronized (ThriftServerLifeCycle.this) {
           ThriftServerLifeCycle.this.notifyAll();
@@ -149,26 +145,24 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
   }
 
   private void waitForPendingRequests(int timeoutMillis) {
-    synchronized (pendingSessions) {
-      long start = System.currentTimeMillis();
-      long remaining = start + timeoutMillis - System.currentTimeMillis();
-      while (pendingSessions.size() > 0 && remaining > 0) {
-        LOG.info("Waiting for " + pendingSessions.size() + " pending requests");
-        try {
-          pendingSessions.wait(remaining);
-          remaining = start + timeoutMillis - System.currentTimeMillis();
-        } catch (InterruptedException e) {
-          LOG.warn("Interrupted while waiting for pending requests", e);
-        }
+    long start = System.currentTimeMillis();
+    long remaining = start + timeoutMillis - System.currentTimeMillis();
+    while (pendingSessions.size() > 0 && remaining > 0) {
+      LOG.info("Waiting for " + pendingSessions.size() + " pending requests");
+      try {
+        pendingSessions.wait(remaining);
+        remaining = start + timeoutMillis - System.currentTimeMillis();
+      } catch (InterruptedException e) {
+        LOG.warn("Interrupted while waiting for pending requests", e);
       }
-      LOG.info("Done waiting for pending requests (" + pendingSessions.size() + " remaining)");
     }
+    LOG.info("Done waiting for pending requests (" + pendingSessions.size() + " remaining)");
   }
 
   private void boot(TProcessor processor) throws NumberFormatException, TTransportException, InterruptedException, ConfigNotFoundException {
-    int port = config.getMandatoryInt(configPropertyPrefix + PORT);
-    int selectors = config.getInt(configPropertyPrefix + SELECTOR_THREADS, DEFAULT_SELECTOR_THREADS);
-    int workers = config.getInt(configPropertyPrefix + WORKER_THREADS, DEFAULT_WORKER_THREADS);
+    int port = config.getMandatoryInt(PORT);
+    int selectors = config.getInt(SELECTOR_THREADS, DEFAULT_SELECTOR_THREADS);
+    int workers = config.getInt(WORKER_THREADS, DEFAULT_WORKER_THREADS);
     fireServer(port, selectors, workers, processor);
   }
 
@@ -191,11 +185,9 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
       @Override
       public ServerContext createContext(TProtocol input, TProtocol output) {
         ThriftRequest serverContext = new ThriftRequest();
-        synchronized (pendingSessions) {
-          LOG.debug("Received new session");
-          pendingSessions.put(serverContext, System.currentTimeMillis());
-          LOG.debug("Current sessions: " + pendingSessions.size());
-        }
+        LOG.debug("Received new session");
+        pendingSessions.put(serverContext, System.currentTimeMillis());
+        LOG.debug("Current sessions: " + pendingSessions.size());
         return serverContext;
       }
 
@@ -211,13 +203,11 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
       @Override
       public void deleteContext(ServerContext serverContext, TProtocol input, TProtocol output) {
-        synchronized (pendingSessions) {
-          pendingSessions.remove(serverContext);
-          LOG.debug("Pending session dispached");
-          LOG.debug("Current sessions: " + pendingSessions.size());
-          if (shutdown) {
-            pendingSessions.notifyAll();
-          }
+        pendingSessions.remove(serverContext);
+        LOG.debug("Pending session dispached");
+        LOG.debug("Current sessions: " + pendingSessions.size());
+        if (shutdown) {
+          pendingSessions.notifyAll();
         }
       }
 
