@@ -44,8 +44,6 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
 
   private volatile boolean shutdown = false;
 
-  private volatile Thread serverThread;
-
   private volatile UberThriftServer thriftServer;
 
   /**
@@ -97,7 +95,7 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    *           - can happen while waiting the thrift server to boot
    */
   private void fireup(TProcessor processor) throws InterruptedException {
-    serverThread = new Thread(() -> {
+    Thread serverThread = new Thread(() -> {
       try {
         boot(processor);
       } catch (Throwable e) {
