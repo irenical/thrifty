@@ -13,5 +13,7 @@ public interface ThriftServerSettings {
   String SHUTDOWN_TIMEOUT_MILLIS = "thrift.shutdownTimeoutMillis";
 
   String STARTUP_TIMEOUT_SECONDS = "thrift.startupTimeoutSeconds";
-
+  
+  String PROTOCOL = "thrift.protocol";
+  
 }

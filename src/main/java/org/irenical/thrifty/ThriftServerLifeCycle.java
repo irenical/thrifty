@@ -6,6 +6,8 @@ import java.util.WeakHashMap;
 
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.ServerContext;
 import org.apache.thrift.server.TServerEventHandler;
@@ -54,6 +56,10 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    * [prefix.]thrift.workerThreads<br>
    * [prefix.]thrift.clientTimeout<br>
    * [prefix.]thrift.shutdownTimeoutMillis<br>
+   * [prefix.]thrift.protocol
+   * 
+   * The thrift.protocol property can have the following values: binary,
+   * compact, json
    * 
    * @param processor
    *          - your thrift processor
@@ -150,7 +156,9 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
     while (pendingSessions.size() > 0 && remaining > 0) {
       LOG.info("Waiting for " + pendingSessions.size() + " pending requests");
       try {
-        pendingSessions.wait(remaining);
+        synchronized (pendingSessions) {
+          pendingSessions.wait(remaining);
+        }
         remaining = start + timeoutMillis - System.currentTimeMillis();
       } catch (InterruptedException e) {
         LOG.warn("Interrupted while waiting for pending requests", e);
@@ -163,14 +171,23 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
     int port = config.getMandatoryInt(PORT);
     int selectors = config.getInt(SELECTOR_THREADS, DEFAULT_SELECTOR_THREADS);
     int workers = config.getInt(WORKER_THREADS, DEFAULT_WORKER_THREADS);
-    fireServer(port, selectors, workers, processor);
+    fireServer(port, selectors, workers, processor, config.getString(PROTOCOL, "binary"));
   }
 
-  private <PROCESSOR extends TProcessor> void fireServer(int port, int selectorThreads, int workerThreads, PROCESSOR processor) throws TTransportException, InterruptedException {
+  private <PROCESSOR extends TProcessor> void fireServer(int port, int selectorThreads, int workerThreads, PROCESSOR processor, String protocol) throws TTransportException, InterruptedException {
     TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
     TThreadedSelectorServer.Args args = new TThreadedSelectorServer.Args(transport);
     args.transportFactory(new TFramedTransport.Factory());
-    args.protocolFactory(new TBinaryProtocol.Factory());
+    if ("binary".equalsIgnoreCase(protocol)) {
+      args.protocolFactory(new TBinaryProtocol.Factory());
+    } else if ("compact".equalsIgnoreCase(protocol)) {
+      args.protocolFactory(new TCompactProtocol.Factory());
+    } else if ("json".equalsIgnoreCase(protocol)) {
+      args.protocolFactory(new TJSONProtocol.Factory());
+    } else {
+      throw new IllegalArgumentException("Thrift protocol not supported: " + protocol);
+    }
+
     args.processor(processor);
     args.selectorThreads(selectorThreads);
     args.workerThreads(workerThreads);
@@ -207,7 +224,9 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
         LOG.debug("Pending session dispached");
         LOG.debug("Current sessions: " + pendingSessions.size());
         if (shutdown) {
-          pendingSessions.notifyAll();
+          synchronized (pendingSessions) {
+            pendingSessions.notifyAll();
+          }
         }
       }
 
