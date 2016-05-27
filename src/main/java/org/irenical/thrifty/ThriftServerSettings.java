@@ -8,8 +8,6 @@ public interface ThriftServerSettings {
 
   String WORKER_THREADS = "thrift.workerThreads";
 
-  String CLIENT_TIMEOUT = "thrift.clientTimeout";
-
   String SHUTDOWN_TIMEOUT_MILLIS = "thrift.shutdownTimeoutMillis";
 
   String STARTUP_TIMEOUT_SECONDS = "thrift.startupTimeoutSeconds";

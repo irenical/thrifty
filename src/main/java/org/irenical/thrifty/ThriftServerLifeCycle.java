@@ -52,7 +52,6 @@ public class ThriftServerLifeCycle implements ThriftServerSettings, LifeCycle {
    * <b>[prefix.]thrift.listenPort: mandatory</b><br>
    * [prefix.]thrift.selectorThreads<br>
    * [prefix.]thrift.workerThreads<br>
-   * [prefix.]thrift.clientTimeout<br>
    * [prefix.]thrift.shutdownTimeoutMillis<br>
    * [prefix.]thrift.protocol
    * 
