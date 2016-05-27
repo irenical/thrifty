@@ -17,7 +17,6 @@ import org.irenical.jindy.ConfigNotFoundException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -25,12 +24,7 @@ import org.junit.Test;
  */
 public class ThriftyTesty {
 
-  private static Config config;
-
-  @BeforeClass
-  public static void setup() throws ConfigNotFoundException {
-    config = ConfigFactory.getConfig();
-  }
+  private static Config config = ConfigFactory.getConfig();
 
   @Before
   public void prepare() {
@@ -42,7 +36,7 @@ public class ThriftyTesty {
     config.clear();
   }
 
-  private static void startCallStop(Parrot.Iface parrot, Function<TTransport, TProtocol> protocolizer) throws InterruptedException, TException, ConfigNotFoundException {
+  private static String startCallStop(Parrot.Iface parrot, Function<TTransport, TProtocol> protocolizer) throws InterruptedException, TException, ConfigNotFoundException {
     int port = config.getMandatoryInt(ThriftServerSettings.PORT);
     ThriftServerLifeCycle thriftServer = new ThriftServerLifeCycle(new Parrot.Processor<Parrot.Iface>(parrot), config);
     thriftServer.start();
@@ -55,15 +49,16 @@ public class ThriftyTesty {
 
     String got = client.hi();
 
-    Assert.assertEquals(got, "Poopsies");
-
     transport.close();
     thriftServer.stop();
+    
+    return got;
   }
 
   @Test
   public void testBinaryToBinary() throws InterruptedException, TException, ConfigNotFoundException {
-    startCallStop(new PottyMouthParrot(), t -> new TBinaryProtocol(t));
+    String got = startCallStop(new PottyMouthParrot(), t -> new TBinaryProtocol(t));
+    Assert.assertEquals(got, "Poopsies");
   }
 
   @Test(expected = TTransportException.class)
@@ -79,13 +74,15 @@ public class ThriftyTesty {
   @Test
   public void testJsonToJSon() throws InterruptedException, TException, ConfigNotFoundException {
     config.setProperty(ThriftServerSettings.PROTOCOL, "json");
-    startCallStop(new PottyMouthParrot(), t -> new TJSONProtocol(t));
+    String got = startCallStop(new PottyMouthParrot(), t -> new TJSONProtocol(t));
+    Assert.assertEquals(got, "Poopsies");
   }
 
   @Test
   public void testCompactToCompact() throws InterruptedException, TException, ConfigNotFoundException {
     config.setProperty(ThriftServerSettings.PROTOCOL, "compact");
-    startCallStop(new PottyMouthParrot(), t -> new TCompactProtocol(t));
+    String got = startCallStop(new PottyMouthParrot(), t -> new TCompactProtocol(t));
+    Assert.assertEquals(got, "Poopsies");
   }
 
 }
