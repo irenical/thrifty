@@ -22,7 +22,7 @@ import org.junit.Test;
 /**
  * Parallel testing not possible due to server's TCP port takeover
  */
-public class ThriftyTesty {
+public class ThriftyTest {
 
   private static Config config = ConfigFactory.getConfig();
 
